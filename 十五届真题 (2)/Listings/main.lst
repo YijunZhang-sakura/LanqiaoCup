@@ -1,0 +1,414 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 20:31:17 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE user\main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\common;.\drive;.\user) DEB
+                    -UG OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          // 主程序系统
+   2          /*  头文件包含 */
+   3          #include <stc15f2k60s2.h>
+   4          #include <Key.h>
+   5          #include <Seg.h>
+   6          #include <su_common_typedef.h>
+   7          #include <ds1302.h>
+   8          #include <iic.h>
+   9          #include <Led.h>
+  10          /*  全局变量定义 */
+  11          uint8_t Seg_Mode; // 0-频率 1-参数 2-时间显示 3-回显模式
+  12          uint8_t Key_Slow_Down;
+  13          uint8_t Key_Old,Key_Val,Key_Down,Key_Up;
+  14          uint8_t Seg_Pos;
+  15          uint16_t Seg_Slow_Down;
+  16          uint8_t Seg_Buf[8] = {16,16,16,16,16,16,16,16};
+  17          uint8_t Frequence[5] = {16,2,3,5,0};
+  18          int16_t ChaoXian[4] = {2,0,0,0};
+  19          int16_t ChaoXian_Data = 2000;
+  20          int16_t JiaoZhun_Data;
+  21          int16_t JiaoZhun[4] = {16,16,16,0};
+  22          uint8_t ucRtc[3] = {13,03,05};
+  23          int16_t Time_500ms;
+  24          int16_t Count_Frequence;
+  25          int16_t Total_Frequence;
+  26          uint8_t time00 = 65536-1000;
+  27          bit CanShu_Mode,HuiXian_Mode;
+  28          int16_t Max_Frequence[5] = {16,2,3,5,0};
+  29          uint8_t Max_Time[3] ={13,03,05};
+  30          int16_t Max_Count;
+  31          uint8_t Time_200ms;
+  32          uint8_t Led_Enable[8] ={0,0,0,0,0,0,0,0};
+  33          uint16_t Led_Time[3] ={0,0,0};
+  34          bit a,b,c;
+  35          //S5按键处理
+  36          void S5_Function(){
+  37   1      if(Seg_Mode ==1)//0是超限 1是校准
+  38   1      CanShu_Mode = ~CanShu_Mode;
+  39   1      if(Seg_Mode == 3)//0是频率 1是时间
+  40   1      HuiXian_Mode = ~HuiXian_Mode;
+  41   1      
+  42   1      }
+  43          
+  44          //S8按键处理
+  45          void S8_Function(){
+  46   1        int16_t temp = 0;
+  47   1      if(Seg_Mode ==1){
+  48   2        if(CanShu_Mode ==0)//超限
+  49   2          ChaoXian_Data = (ChaoXian_Data>=1000&&ChaoXian_Data<=8000)?(ChaoXian_Data+1000):ChaoXian_Data;
+  50   2        else//校准
+  51   2          JiaoZhun_Data = (JiaoZhun_Data>=(-900)&&JiaoZhun_Data<=800)?(JiaoZhun_Data+100):JiaoZhun_Data;
+  52   2        
+  53   2        }//if
+  54   1        
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 20:31:17 PAGE 2   
+
+  55   1          //更新显示
+  56   1          if(JiaoZhun_Data<0){
+  57   2        JiaoZhun[0] = 19;
+  58   2          temp = -JiaoZhun_Data;
+  59   2        JiaoZhun[1] = temp/100%10;
+  60   2        JiaoZhun[2] = temp/10%10;
+  61   2        JiaoZhun[3] = temp%10;
+  62   2      
+  63   2          }//符号位 - 
+  64   1        if(JiaoZhun_Data>0){ 
+  65   2          JiaoZhun[0] = 16; //灭
+  66   2        JiaoZhun[1] = JiaoZhun_Data/100%10;
+  67   2        JiaoZhun[2] = JiaoZhun_Data/10%10;
+  68   2        JiaoZhun[3] = JiaoZhun_Data%10;}
+  69   1          
+  70   1        if(JiaoZhun_Data == 0){
+  71   2            JiaoZhun[0] = 16; //灭
+  72   2        JiaoZhun[1] = 16;
+  73   2        JiaoZhun[2] = 16;
+  74   2        JiaoZhun[3] = 0;
+  75   2        
+  76   2        }
+  77   1        
+  78   1          ChaoXian[0] = ChaoXian_Data/1000%10;
+  79   1          ChaoXian[1] = ChaoXian_Data/100%10;
+  80   1          ChaoXian[2] = ChaoXian_Data/10%10;
+  81   1          ChaoXian[3] = ChaoXian_Data%10;
+  82   1      
+  83   1      }
+  84            
+  85          
+  86          //S9按键处理
+  87          void S9_Function(){
+  88   1        int16_t temp = 0;
+  89   1      if(Seg_Mode ==1){
+  90   2        if(CanShu_Mode ==0)//超限
+  91   2          ChaoXian_Data = (ChaoXian_Data>=2000&&ChaoXian_Data<=9000)?(ChaoXian_Data-1000):ChaoXian_Data;
+  92   2        else//校准
+  93   2          JiaoZhun_Data = (JiaoZhun_Data>=(-800)&&JiaoZhun_Data<=900)?(JiaoZhun_Data-100):JiaoZhun_Data;
+  94   2        
+  95   2        }//if
+  96   1          //更新显示
+  97   1          if(JiaoZhun_Data<0){
+  98   2        JiaoZhun[0] = 19;
+  99   2          temp = -JiaoZhun_Data;
+ 100   2        JiaoZhun[1] = temp/100%10;
+ 101   2        JiaoZhun[2] = temp/10%10;
+ 102   2        JiaoZhun[3] = temp%10;
+ 103   2          }//符号位 - 
+ 104   1        if(JiaoZhun_Data>0){ 
+ 105   2          JiaoZhun[0] = 16; //灭
+ 106   2        JiaoZhun[1] = JiaoZhun_Data/100%10;
+ 107   2        JiaoZhun[2] = JiaoZhun_Data/10%10;
+ 108   2        JiaoZhun[3] = JiaoZhun_Data%10;
+ 109   2        }
+ 110   1        if(JiaoZhun_Data == 0){
+ 111   2            JiaoZhun[0] = 16; //灭
+ 112   2        JiaoZhun[1] = 16;
+ 113   2        JiaoZhun[2] = 16;
+ 114   2        JiaoZhun[3] = 0;
+ 115   2        
+ 116   2        }
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 20:31:17 PAGE 3   
+
+ 117   1        
+ 118   1          ChaoXian[0] = ChaoXian_Data/1000%10;
+ 119   1          ChaoXian[1] = ChaoXian_Data/100%10;
+ 120   1          ChaoXian[2] = ChaoXian_Data/10%10;
+ 121   1          ChaoXian[3] = ChaoXian_Data%10;
+ 122   1      
+ 123   1      }
+ 124          /* 键盘处理函数 */
+ 125          void Key_Process(){
+ 126   1          if(Key_Slow_Down) return;
+ 127   1          Key_Slow_Down = 1;
+ 128   1          Key_Val = Key_Read();
+ 129   1          Key_Up=~Key_Val & (Key_Old^ Key_Val); // 检测键释放
+ 130   1          Key_Down = Key_Val & (Key_Val ^ Key_Old);
+ 131   1          Key_Old = Key_Val;
+ 132   1          switch(Key_Down){
+ 133   2              case 1://S4
+ 134   2              if(Seg_Mode == 0)  CanShu_Mode = 0;
+ 135   2              if(Seg_Mode == 2)  HuiXian_Mode = 0;
+ 136   2              if(++Seg_Mode == 4) Seg_Mode = 0;
+ 137   2                  break;
+ 138   2              case 2://S5
+ 139   2              S5_Function();
+ 140   2              break;
+ 141   2              case 5://S8 增加键
+ 142   2              S8_Function();
+ 143   2                  break;
+ 144   2      
+ 145   2              case 6://S9 减少键
+ 146   2              S9_Function();
+ 147   2                  break;
+ 148   2          }
+ 149   1      }
+ 150          /*参数显示*/
+ 151          void  CanShu_Process(){
+ 152   1        if(CanShu_Mode == 0){//超限
+ 153   2                  Seg_Buf[0] = 17 ;//P
+ 154   2                  Seg_Buf[1] = 1 ;//1
+ 155   2                  Seg_Buf[2] = 16 ;
+ 156   2                  Seg_Buf[3] = 16 ;
+ 157   2                  Seg_Buf[4] = ChaoXian[0] ;
+ 158   2                  Seg_Buf[5] = ChaoXian[1] ;
+ 159   2                  Seg_Buf[6] = ChaoXian[2] ;
+ 160   2                  Seg_Buf[7] = ChaoXian[3] ;
+ 161   2          return;
+ 162   2        }
+ 163   1        else{
+ 164   2                  Seg_Buf[0] = 17 ;//P
+ 165   2                  Seg_Buf[1] = 2 ;//1
+ 166   2                  Seg_Buf[2] = 16 ;
+ 167   2                  Seg_Buf[3] = 16 ;
+ 168   2                  Seg_Buf[4] = JiaoZhun[0] ;
+ 169   2                  Seg_Buf[5] = JiaoZhun[1] ;
+ 170   2                  Seg_Buf[6] = JiaoZhun[2] ;
+ 171   2                  Seg_Buf[7] = JiaoZhun[3] ;
+ 172   2        }
+ 173   1      }
+ 174          void HuiXian_Process(){
+ 175   1        if(HuiXian_Mode == 0){//频率
+ 176   2                  Seg_Buf[0] = 18 ;//H
+ 177   2                  Seg_Buf[1] = 15 ;//F
+ 178   2                  Seg_Buf[2] = 16 ;
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 20:31:17 PAGE 4   
+
+ 179   2                  Seg_Buf[3] = Max_Frequence[0] ;
+ 180   2                  Seg_Buf[4] = Max_Frequence[1] ;
+ 181   2                  Seg_Buf[5] = Max_Frequence[2] ;
+ 182   2                  Seg_Buf[6] = Max_Frequence[3] ;
+ 183   2                  Seg_Buf[7] = Max_Frequence[4] ;
+ 184   2          return;
+ 185   2        }
+ 186   1        else{ //时间
+ 187   2                  Seg_Buf[0] = 18 ;//H
+ 188   2                  Seg_Buf[1] = 10;//A
+ 189   2                  Seg_Buf[2] = Max_Time[0]/10%10;
+ 190   2                  Seg_Buf[3] = Max_Time[0]%10;
+ 191   2                  Seg_Buf[4] = Max_Time[1]/10%10 ;
+ 192   2                  Seg_Buf[5] = Max_Time[1]%10 ;
+ 193   2                  Seg_Buf[6] = Max_Time[2]/10%10 ;
+ 194   2                  Seg_Buf[7] = Max_Time[2]%10;
+ 195   2        }
+ 196   1      
+ 197   1      }
+ 198          /* 段码处理函数 */
+ 199          void Seg_Process(){
+ 200   1          Read_Rtc(ucRtc);
+ 201   1          if(Seg_Slow_Down) return;
+ 202   1          switch(Seg_Mode){
+ 203   2              case 0://频率显示
+ 204   2                  Seg_Buf[0] = 15 ;//F
+ 205   2                  Seg_Buf[1] = 16 ;
+ 206   2                  Seg_Buf[2] = 16 ;
+ 207   2                  Seg_Buf[3] = Frequence[0] ;
+ 208   2                  Seg_Buf[4] = Frequence[1] ;
+ 209   2                  Seg_Buf[5] = Frequence[2] ;
+ 210   2                  Seg_Buf[6] = Frequence[3] ;
+ 211   2                  Seg_Buf[7] = Frequence[4] ;
+ 212   2                  break;
+ 213   2      
+ 214   2              case 1://参数显示
+ 215   2              CanShu_Process();
+ 216   2                  break;
+ 217   2      
+ 218   2              case 2://时间显示
+ 219   2                  Seg_Buf[0] = ucRtc[0]/10%10 ;
+ 220   2                  Seg_Buf[1] = ucRtc[0]%10 ;
+ 221   2                  Seg_Buf[2] = 19 ;//-
+ 222   2                  Seg_Buf[3] = ucRtc[1]/10%10 ;
+ 223   2                  Seg_Buf[4] = ucRtc[1]%10 ;
+ 224   2                  Seg_Buf[5] = 19 ;//-
+ 225   2                  Seg_Buf[6] = ucRtc[2]/10%10 ;
+ 226   2                  Seg_Buf[7] = ucRtc[2]%10 ;
+ 227   2                  break;
+ 228   2      
+ 229   2              case 3://回显模式
+ 230   2              HuiXian_Process();
+ 231   2                  break;
+ 232   2          }
+ 233   1      }
+ 234          /* LED处理函数 */
+ 235          void Led_Process(){
+ 236   1        if(Seg_Mode == 0){
+ 237   2          a=1;//L1闪烁
+ 238   2        }else{
+ 239   2          a =0;
+ 240   2            Led_Enable[0] = 0;
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 20:31:17 PAGE 5   
+
+ 241   2          Led_Disp(0,Led_Enable[0]);
+ 242   2        
+ 243   2        }
+ 244   1        
+ 245   1        if(Total_Frequence>ChaoXian_Data){//L2闪烁
+ 246   2          b=1;
+ 247   2        }
+ 248   1        else if((Total_Frequence<=ChaoXian_Data)&&Total_Frequence>=0){ 
+ 249   2          b = 0;
+ 250   2        Led_Enable[1] = 0;
+ 251   2          Led_Disp(1,Led_Enable[1]);
+ 252   2        }
+ 253   1        
+ 254   1        
+ 255   1          if(Total_Frequence < 0){ 
+ 256   2            c = 1;
+ 257   2          }else c = 0;
+ 258   1      }
+ 259          
+ 260          void Init_Beep_Led(){
+ 261   1          P2 = (P2 &0x1f) | 0xb0;
+ 262   1          P0 = 0x00;
+ 263   1          P2 = 0x1f;
+ 264   1          P0 = 0xff;
+ 265   1          P2 = (P2 &0x1f) | 0x80;
+ 266   1          P0 =0xff;
+ 267   1          P2 = 0x1f;
+ 268   1      }
+ 269          
+ 270          /* 定时器0初始化 */
+ 271          void Init_Time(){
+ 272   1        TMOD = 0x06;    //设置定时器模式
+ 273   1          TL1 = 63536%256;    //设置定时初值
+ 274   1          TH1 = 63536/256;    //设置定时初值
+ 275   1        TF1 = 0;  TF0 = 1;  //清除TF0标志
+ 276   1        TR1 = 1;  TR0 = 1;  //定时器0开始计时
+ 277   1        EA = 1;
+ 278   1        ET0 = 1; ET1 = 1;
+ 279   1      }
+ 280          
+ 281          
+ 282          
+ 283          void Update_Frequence(){
+ 284   1        uint8_t  i,j = 0; 
+ 285   1        long double temp,FZ,FM;
+ 286   1        Total_Frequence = 2*Count_Frequence + JiaoZhun_Data;
+ 287   1        if(Total_Frequence >= 0){
+ 288   2        Frequence[0] = (Total_Frequence/10000%10 == 0)?16:(Total_Frequence/10000%10);
+ 289   2        if(Frequence[0] == 16)
+ 290   2        Frequence[1] = (Total_Frequence/1000%10 == 0)?16:(Total_Frequence/1000%10);
+ 291   2        else Frequence[1] =(Total_Frequence/1000%10);
+ 292   2        if(Frequence[1] == 16)
+ 293   2        Frequence[2] = (Total_Frequence/100%10 == 0)?16:(Total_Frequence/100%10);
+ 294   2        else Frequence[2] = (Total_Frequence/100%10);
+ 295   2        if(Frequence[2] == 16)
+ 296   2        Frequence[3] = (Total_Frequence/10%10 == 0)?16:(Total_Frequence/10%10);
+ 297   2        else Frequence[3] = (Total_Frequence/10%10);
+ 298   2        Frequence[4] = Total_Frequence%10;}
+ 299   1        else{//负数情况
+ 300   2          Frequence[0] = 16;
+ 301   2          Frequence[1] = 16;
+ 302   2          Frequence[2] = 16;
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 20:31:17 PAGE 6   
+
+ 303   2        Frequence[3] = 20;
+ 304   2        Frequence[4] = 20;
+ 305   2        }
+ 306   1        //Da输出部分
+ 307   1        if(Total_Frequence < 0 )  Da_Write(0);
+ 308   1        if(Total_Frequence >=0&&Total_Frequence<= 500) Da_Write(51);
+ 309   1        if(Total_Frequence > 500 && Total_Frequence<= ChaoXian_Data ){
+ 310   2        FZ=Total_Frequence-500;
+ 311   2          FM = ChaoXian_Data-500;
+ 312   2          temp = 51+(204*(FZ/FM));
+ 313   2          Da_Write(temp);
+ 314   2        }
+ 315   1        if(Total_Frequence> ChaoXian_Data) Da_Write(255);
+ 316   1        if(Max_Count < Total_Frequence){
+ 317   2          Max_Count = Total_Frequence;
+ 318   2          for(j = 0;j<3;j++) Max_Time[j] = ucRtc[j];
+ 319   2          for(i=0;i<5;i++)Max_Frequence[i] = Frequence[i];
+ 320   2        }
+ 321   1        
+ 322   1        Count_Frequence = 0;
+ 323   1      }
+ 324          
+ 325          /* 定时器0中断服务 */
+ 326          void Time0_Serve() interrupt 1{
+ 327   1          TH0 = 0xff;
+ 328   1          TL0 = 0xff;
+ 329   1          Count_Frequence++;
+ 330   1      }
+ 331          
+ 332          /* 定时器1中断服务 */
+ 333          void Time1_Serve() interrupt 3{
+ 334   1          TL1 = 63536%256;    //设置定时初值
+ 335   1          TH1 = 63536/256;    //设置定时初值
+ 336   1          Led_Process();
+ 337   1          P2 = 0xff;
+ 338   1          if(++Key_Slow_Down == 10) Key_Slow_Down = 0;
+ 339   1          if(++Seg_Pos == 8) Seg_Pos = 0;
+ 340   1          if(Seg_Slow_Down == 100)    Seg_Slow_Down = 0;
+ 341   1          if(a){
+ 342   2          if(++Led_Time[0] == 100){  
+ 343   3          Led_Time[0] = 0;
+ 344   3            Led_Enable[0] =~Led_Enable[0];
+ 345   3            Led_Disp(0,Led_Enable[0]);
+ 346   3          }
+ 347   2          }
+ 348   1          if(b){
+ 349   2              if(++Led_Time[1] == 100){  
+ 350   3          Led_Time[1] = 0;
+ 351   3            Led_Enable[1] =~Led_Enable[1];
+ 352   3            Led_Disp(1,Led_Enable[1]);
+ 353   3          }
+ 354   2          }
+ 355   1          if(c){
+ 356   2                  Led_Enable[1] =1;
+ 357   2            Led_Disp(1,Led_Enable[1]);
+ 358   2          }
+ 359   1          if(++Time_500ms == 250){
+ 360   2            Time_500ms = 0;
+ 361   2            Update_Frequence();
+ 362   2          }
+ 363   1          
+ 364   1          Led_Process();
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 20:31:17 PAGE 7   
+
+ 365   1          Seg_Display(Seg_Pos,Seg_Buf[Seg_Pos]);
+ 366   1          
+ 367   1      }
+ 368          /* 主函数 */
+ 369          void main(){
+ 370   1          Init_Time();
+ 371   1          Init_Beep_Led();
+ 372   1          Set_Rtc(ucRtc);
+ 373   1          while(1){
+ 374   2              Key_Process();
+ 375   2              Seg_Process();
+ 376   2              Led_Process();
+ 377   2          }
+ 378   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2056    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     82       5
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      5    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

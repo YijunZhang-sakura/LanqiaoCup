@@ -1,0 +1,45 @@
+C51 COMPILER V9.60.7.0   SEG                                                               04/09/2025 20:27:43 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE SEG
+OBJECT MODULE PLACED IN .\Objects\Seg.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE drive\Seg.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\common;.\drive;.\user) DEB
+                    -UG OBJECTEXTEND PRINT(.\Listings\Seg.lst) TABS(2) OBJECT(.\Objects\Seg.obj)
+
+line level    source
+
+   1          #include <seg.h>
+   2          uint8_t code Seg_Dula[21] = {
+   3              0xc0, 0xf9, 0xa4, 0xb0, 0x99, 0x92, 0x82,
+   4              0xf8, 0x80, 0x90, 0x88, 0x83, 0xc6, 0xa1,
+   5              0x86, 0x8e, 0xff, 0x8c, 0x89, 0xbf, 0xc7  // 第17灭第18P第19H第20-第21L
+   6          };
+   7          
+   8          uint8_t code Seg_Wela[8] = {0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};//位选 
+   9          void Seg_Display(uint8_t Wela,uint8_t Dula){
+  10   1          P0 = 0xff;
+  11   1          P2 = P2 &0x1f |0xe0;
+  12   1          P2 &= 0x1f;
+  13   1        
+  14   1          P0 = Seg_Wela[Wela];
+  15   1          P2 = P2 & 0x1f |0xc0;
+  16   1          P2 &= 0x1f;
+  17   1          
+  18   1          P0 = Seg_Dula[Dula];
+  19   1          P2 = P2 & 0x1f |0xe0;
+  20   1          P2 &= 0x1f;
+  21   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     51    ----
+   CONSTANT SIZE    =     29    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
