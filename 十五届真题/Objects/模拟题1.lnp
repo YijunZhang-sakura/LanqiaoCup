@@ -1,9 +1,0 @@
-".\Objects\STARTUP.obj",
-".\Objects\main.obj",
-".\Objects\Key.obj",
-".\Objects\Seg.obj",
-".\Objects\ds1302.obj",
-".\Objects\iic.obj",
-".\Objects\Led.obj" 
-TO ".\Objects\模拟题1" 
-PRINT(".\Listings\模拟题1.m51") RAMSIZE(256) 
