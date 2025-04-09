@@ -1,0 +1,9 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj",
+".\Objects\key.obj",
+".\Objects\seg.obj",
+".\Objects\ds1302.obj",
+".\Objects\onewire.obj",
+".\Objects\led.obj" 
+TO ".\Objects\lanqiao13" 
+PRINT(".\Listings\lanqiao13.m51") RAMSIZE(256) 

@@ -1,0 +1,222 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 19:25:21 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE user\main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\drive;.\common;.\user) DEB
+                    -UG OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /*  头文件声明区*/
+   2          #include <stc15f2k60s2.h>
+   3          #include <key.h>
+   4          #include <seg.h>
+   5          #include <su_common_typedef.h>
+   6          #include <onewire.h>
+   7          #include <ds1302.h>
+   8          #include <led.h>
+   9          /*  变量声明区*/
+  10          uint16_t Seg_Mode;//0温度显示 1时间显示 2 参数控制
+  11          uint8_t Key_Slow_Down;
+  12          uint8_t Key_Old,Key_Val,Key_Down,Key_Up;
+  13          uint8_t Seg_Pos;
+  14          uint16_t Seg_Slow_Down;
+  15          uint8_t Seg_Buf[8] = {16,16,16,16,16,16,16,16};
+  16          uint8_t Seg_Point[8] = {0,0,0,0,0,0,0,0};
+  17          uint8_t ucRtc[3] ={23,25,0};
+  18          float Tp;
+  19          uint8_t Tp_Canshu = 23;
+  20          bit Work_Mode = 0;//0温度控制 1时间控制
+  21          bit Time_Disp = 0;
+  22          uint16_t Time_5s;
+  23          bit a = 0;
+  24          
+  25          
+  26          /* 按键处理*/
+  27          void Key_Process(){
+  28   1          if(Key_Slow_Down) return;
+  29   1        Key_Slow_Down =1;
+  30   1        Key_Val = Key_Read();
+  31   1        Key_Down = Key_Val & (Key_Val ^ Key_Old);
+  32   1        Key_Up = ~Key_Val & (Key_Val ^ Key_Old);
+  33   1        Key_Old = Key_Val;
+  34   1        switch(Key_Down){
+  35   2          case 9://S12
+  36   2          Seg_Mode++;
+  37   2          if(Seg_Mode == 3) Seg_Mode = 0;   
+  38   2          break;
+  39   2          
+  40   2          case 10: //S13
+  41   2          Work_Mode =~Work_Mode;
+  42   2          
+  43   2          break;
+  44   2          
+  45   2          case 13://S16 加
+  46   2          
+  47   2          if(Seg_Mode == 2&&(Tp_Canshu>=10&&Tp_Canshu<=98))
+  48   2          ++Tp_Canshu;
+  49   2          break;
+  50   2          case 14://S17 减
+  51   2          if(Seg_Mode == 2&&(Tp_Canshu>=11&&Tp_Canshu<=99)){
+  52   3          --Tp_Canshu;
+  53   3          return;}
+  54   2          if(Seg_Mode == 1)
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 19:25:21 PAGE 2   
+
+  55   2          Time_Disp = 1;//分秒
+  56   2          break;
+  57   2        }
+  58   1        if(Key_Up == 14) Time_Disp = 0;
+  59   1      }
+  60          
+  61          /*信息处理*/
+  62          void Seg_Process(){
+  63   1        Read_Rtc(ucRtc);
+  64   1      if(Seg_Slow_Down) return;
+  65   1        switch(Seg_Mode){
+  66   2          case 0://温度显示
+  67   2            Tp = rd_temperature();
+  68   2          Seg_Point[6] = 1;
+  69   2          Seg_Buf[0] = 18;//U
+  70   2          Seg_Buf[1] = 1;//1
+  71   2          Seg_Buf[2] = 16;
+  72   2          Seg_Buf[3] = 16;
+  73   2          Seg_Buf[4] = 16;
+  74   2          Seg_Buf[5] = (uint8_t)Tp/10%10;
+  75   2          Seg_Buf[6] = (uint8_t)Tp%10;
+  76   2          Seg_Buf[7] = (uint16_t)(Tp*10)%10;
+  77   2          
+  78   2          break;
+  79   2          
+  80   2          case 1://时间显示
+  81   2          Seg_Point[6] = 0;
+  82   2          Seg_Buf[0] = 18;//U
+  83   2          Seg_Buf[1] = 2;//2
+  84   2          Seg_Buf[2] = 16;
+  85   2          if(Time_Disp == 0){//不按下时 时分
+  86   3          Seg_Buf[3] = ucRtc[0]/10%10;//hour
+  87   3          Seg_Buf[4] = ucRtc[0]%10;
+  88   3          Seg_Buf[5] = 17;
+  89   3          Seg_Buf[6] = ucRtc[1]/10%10;
+  90   3          Seg_Buf[7] = ucRtc[1]%10;
+  91   3          }
+  92   2          else{//分秒
+  93   3          Seg_Buf[3] = ucRtc[1]/10%10;//min
+  94   3          Seg_Buf[4] = ucRtc[1]%10;
+  95   3          Seg_Buf[5] = 17;
+  96   3          Seg_Buf[6] = ucRtc[2]/10%10;
+  97   3          Seg_Buf[7] = ucRtc[2]%10;
+  98   3          }
+  99   2          break;
+ 100   2          
+ 101   2          
+ 102   2          case 2://参数设置
+ 103   2          Seg_Point[6] = 0;
+ 104   2          Seg_Buf[0] = 18;
+ 105   2          Seg_Buf[1] = 3; 
+ 106   2          Seg_Buf[2] = 16;
+ 107   2          Seg_Buf[3] = 16;
+ 108   2          Seg_Buf[4] = 16;
+ 109   2          Seg_Buf[5] = 16;
+ 110   2          Seg_Buf[6] = Tp_Canshu/10%10;
+ 111   2          Seg_Buf[7] = Tp_Canshu%10;    
+ 112   2          break;
+ 113   2          
+ 114   2          
+ 115   2        }
+ 116   1      }
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 19:25:21 PAGE 3   
+
+ 117          /* 其他显示函数*/
+ 118          void Led_Process(){
+ 119   1        if((ucRtc[1] ==0)&& (ucRtc[2] == 0 )){//整点
+ 120   2        Led_Disp(0,1);//LED1
+ 121   2        if(Time_5s==0)  Led_Disp(0,0);
+ 122   2        }
+ 123   1        if(Work_Mode ==0)   Led_Disp(1,1);
+ 124   1        else Led_Disp(1,0);
+ 125   1      }
+ 126          /*继电器处理函数*/
+ 127          void Relay_Process(){
+ 128   1        if(Work_Mode){//温度控制
+ 129   2        if(Tp>=Tp_Canshu) Relay(1);
+ 130   2          else Relay(0);
+ 131   2        
+ 132   2        }
+ 133   1        else{//时间控制
+ 134   2        if((ucRtc[1] ==0)&& (ucRtc[2] == 0 )){
+ 135   3        Relay(1);
+ 136   3        a= 1;
+ 137   3        if(Time_5s == 0)  Relay(0);
+ 138   3        }
+ 139   2        }
+ 140   1      }
+ 141          /*定时器0初始化*/
+ 142          void Init_Time0(){
+ 143   1          TMOD &= 0xF0;   //设置定时器模式
+ 144   1        TL0 = 64536%256;    //设置定时初值
+ 145   1        TH0 = 64536/256;    //设置定时初值
+ 146   1        TF0 = 0;    //清除TF0标志
+ 147   1        TR0 = 1;    //定时器0开始计时
+ 148   1        EA = 1;
+ 149   1        ET0 = 1;
+ 150   1      }
+ 151          /*关闭BEEP*/
+ 152          void Init(){
+ 153   1        P0 &=  0xbf;
+ 154   1        P2 = P2 &0x1f | 0xb0;
+ 155   1        P2 &=  0x1f;
+ 156   1        
+ 157   1        P0 |= 0xff;
+ 158   1        P2 = P2 &0x1f | 0x80;
+ 159   1        P2 &=  0x1f;
+ 160   1        
+ 161   1      
+ 162   1      
+ 163   1      }
+ 164          /*定时器0服务函数*/
+ 165          void Time0_Serve() interrupt 1{
+ 166   1        TL0 = 64536%256;    //设置定时初值
+ 167   1        TH0 = 64536/256;    //设置定时初值
+ 168   1        if(++Key_Slow_Down == 10) Key_Slow_Down = 0;
+ 169   1        if(++Seg_Pos == 8) Seg_Pos = 0;
+ 170   1        if(++Seg_Slow_Down == 200) Seg_Slow_Down = 0;
+ 171   1        if(a ==1){
+ 172   2          if(++Time_5s == 5000){
+ 173   3              Time_5s = 0;
+ 174   3              a = 0;
+ 175   3          }
+ 176   2        }
+ 177   1        Seg_Disp(Seg_Pos,Seg_Buf[Seg_Pos],Seg_Point[Seg_Pos]);
+ 178   1        
+C51 COMPILER V9.60.7.0   MAIN                                                              04/09/2025 19:25:21 PAGE 4   
+
+ 179   1        
+ 180   1      }
+ 181          /*主函数*/
+ 182          void main(){
+ 183   1        Init();
+ 184   1        Init_Time0();
+ 185   1        Set_Rtc(ucRtc);
+ 186   1          while(1){
+ 187   2          Key_Process();
+ 188   2          Seg_Process();
+ 189   2          Led_Process();
+ 190   2          Relay_Process();
+ 191   2          }
+ 192   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    733    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     36    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
